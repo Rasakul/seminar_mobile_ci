@@ -20,7 +20,7 @@ The current setup is based on Bitrise and an automated Google Play Store deploym
 
 As we can see, this workflow already covers most of the CI/CD steps, but misses some crucial points. In order to analyze how this can be improved to a fully implemented CI/CD pipeline, we will use the previously introduced adopted checklist of Fowler:\\
 
-\begin{enumerate}
+\begin{enumerate}\label{analysis_aaa}
 	
 	\item \textbf{Maintain a Single Source Repository}
 	\begin{todolist}
@@ -67,14 +67,99 @@ As we can see, this workflow already covers most of the CI/CD steps, but misses 
 
 	\item \textbf{Automate Deployment}
 	\begin{todolist}
-		\item Yes, automated deployement to Google Play \texttt{internal} or \texttt{alpha} track, manual deployement to \texttt{release} \\
+		\item[\done] Yes, automated deployment to Google Play \texttt{internal} or \texttt{alpha} track, manual deployment to \texttt{release}
 	\end{todolist}
 
 \end{enumerate}
 
 \subsection{Missing steps}
-We don't test :/
+As it can be seen in listening~\ref{analysis_aaa}, the biggest issue is that there is currently \textbf{no automated testing} in the existing pipeline. Additionally a requirement analysis pointed out that next to testing there should be a \textbf{static code analysis} (\texttt{kklint}) introduced in the pipeline.
+
+In order to fix this, the company developed a prototype pipeline for an existing project which covers all necessary steps of a full functional CI/CD pipeline. In order to do so, it was necessary to define limitations and a set of statements:\\
+
+\begin{statement}\label{stat:long_ui}
+	UI tests are very long running workflows on Bitrise
+\end{statement}
+
+\begin{statement}\label{stat:short_unit}
+	Unit tests are relatively short running workflows on Bitrise
+\end{statement}
+
+\begin{statement}
+	Concurrent builds are limited by 3 due to the Bitrise billing limits.
+\end{statement}
+
+\begin{statement}
+	Pull requests only have 1 trigger at Bitrise, there is (currently) no trigger when updating a pull requests.
+\end{statement}
+
+\begin{statement}
+	Bitrise includes Firebase Test Lab runs, which are only limited by the maximal build duration.
+\end{statement}
+
+\begin{statement}\label{stat:break_builds}
+	Changing the pipeline of an existing project towards a full CI/CD pipeline shall not break the existing build without adding failing tests.
+\end{statement}
+
+\begin{statement}
+	Bitrise supports triggered and scheduled builds.
+\end{statement}
+
+\begin{statement}
+	The major advantage of Bitrise is the huge supply of Build Step Plugins.\footnote{\url{https://github.com/bitrise-io/bitrise-steplib}}
+\end{statement}
+
+\begin{statement}
+	Android builds are done with several build variants. (debug/release, production/staging, etc).
+\end{statement}
+
+\begin{statement}
+	UI requirements are usually changing very fast in projects.
+\end{statement}
 
 \subsection{Updated CI/CD pipeline}
-Bitrise config:~\ref{bitrise_config}
-Hui, nobody knows!
+
+\begin{table}[htb]
+	\renewcommand{\arraystretch}{1.3}
+	\caption{Workflow overview}
+	\label{tab:overview_workflows}
+	\centering
+	\begin{tabular}{|p{31pt}||p{45pt}|p{50pt}|p{45pt}|p{45pt}|}
+		\hline
+		\textbf{Workflow} & \textbf{\texttt{debug}} & \textbf{\texttt{integration}} & \textbf{\texttt{release}} & \textbf{\texttt{preview}} \\ \hline \hline
+		\textbf{Trigger} & push to feature & scheduled daily & tag on master & push to master \& pull requests \\ \hline
+		\textbf{Duration} & $\sim$15min & $>$ 1h & $>$ 1h & $\sim$20min \\ \hline
+		\textbf{Testtype} & unit \& klint & integration \& UI & full test suite & unit \& klint \\ \hline
+		\textbf{Build Variant} & debug & debug & release & preview \\ \hline
+		\textbf{Post build} & - & - & Upload to Google Play \texttt{internal}/ \texttt{alpha} track & - \\ \hline
+	\end{tabular}
+\end{table}
+
+From the conclusion of these statements, there were these workflows defined:
+
+\begin{enumerate}
+	\item \textbf{\texttt{debug}}\\
+	Runs on every push on feature branches and triggers only unit tests and klint checks. Due to statement~\ref{stat:break_builds} the klint checks per default are configured to not fail the build on reporting errors.
+	\item \textbf{\texttt{integration}}\\
+	Can only run each nights (using Bitrise's scheduling feature) due to its very long build duration (can even be over an hour). It uses Firebase Robo \& UI testing, Espresso and Robolectrics.
+	\item \textbf{\texttt{release}}\\
+	Triggered by a \texttt{git tag} and runs each available test suite, including unit, integration and UI tests, before building a release build and uploading it automated to the Google Play \texttt{internal}/\texttt{alpha} track. The final release is done manually.
+	\item \textbf{\texttt{preview}}\\
+	On each pull request to the master branch and each push to the master itself the \texttt{preview} workflow is triggered, running all unit tests and klint checks.
+\end{enumerate}
+
+The full configuration file of Bitrise is referred in the appendix~\ref{bitrise_config}
+
+\subsubsection{Additional remarks \& recommendations}
+Due to the nature of the company being an agency instead of doing product development, the outlined CI/CD pipeline is far less sophisticated than it could be. Projects in these kind of companies will never be long term enough to build up big test suites and investing resources into setting up big test cases are always in discrepancy with the project scope. 
+
+But there is always room for improvements, so here are some additional recommendations, how the pipeline could be enhanced:
+
+\begin{itemize}
+	\item \textbf{Enhanced Pull Requests}\\
+	The current state of pull requests reviews could be enhanced by providing the existing \texttt{klint}/\texttt{detekt} \textbf{reports} together with some other meta information (e.g. changed permission set, increased apk size) in order to make proper use of the existing information and utilize a more informed decision about the pull request.\\
+	Further it would make sense to \textbf{analyze commits after opening pull requests} (which Bitrise currently does not support) in order to see the improvements in between these commits.
+	\item \textbf{Pre-commit git hooks}\\
+	Another quite useful tool are the \texttt{git hooks} which can be run on pre-commit (or pre-push) to trigger e.g. a lint analyses in order to already prevent faulty code in the repository. These hooks could block a push if the committed code does not reach a certain quality goal. And since \texttt{lint}/\texttt{detekt} are usually rather fast tools (which don't even require a full build to run), it would have not a big impact on the development process.
+\end{itemize}
+

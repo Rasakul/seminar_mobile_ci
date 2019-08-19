@@ -210,7 +210,7 @@
 
 % *** ALIGNMENT PACKAGES ***
 %
-%\usepackage{array}
+\usepackage{array}
 % Frank Mittelbach's and David Carlisle's array.sty patches and improves
 % the standard LaTeX2e array and tabular environments to provide better
 % appearance and additional user controls. As the default LaTeX2e table
@@ -375,7 +375,7 @@
 \newcommand{\xmark}{\ding{55}}%
 \newcommand{\done}{\rlap{$\square$}{\raisebox{2pt}{\large\hspace{1pt}\cmark}}%
 	\hspace{-2.5pt}}
-\newcommand{\wontfix}{\rlap{$\square$}{\large\hspace{1pt}\xmark}}
+\newcommand{\notdone}{\rlap{$\square$}{\large\hspace{1pt}\xmark}}
 
 \usepackage[font=itshape]{quoting}
 \usepackage{mdframed}
@@ -392,6 +392,9 @@
 	rightmargin = 4pt
 	backgroundcolor=gray
 }
+
+\newtheorem{statement}{Statement}
+\usepackage{tabularx}
 
 \begin{document}
 %
@@ -662,6 +665,9 @@ Mobile Continuous Integration, Mobile Continuous Delivery, Android.
 % \section{}
 % Appendix two text goes here.
 
+\appendices
+\section{AllAboutApps Bitrise Configuration (new)}\label{bitrise_config}
+\url{https://raw.githubusercontent.com/Rasakul/seminar_mobile_ci/master/bitrise/bitrise.yml}
 
 % use section* for acknowledgment
 % \ifCLASSOPTIONcompsoc
