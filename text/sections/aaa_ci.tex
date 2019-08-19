@@ -1,58 +1,73 @@
 \section{Mobile CI/CD example: AllAboutApps pipeline}
-How does the CI pipeline look like at AAA
+After looking into what options there are to define a CI/CD pipeline for mobile applications, this section will now evaluate this with an existing pipeline at AllAboutApps, how a concrete implementation looks like and how it can be improved to fully apply as CI/CD pipeline.
 
 \subsection{Current state}
+The current setup is based on Bitrise and an automated Google Play Store deployment. The current workflow/pipeline looks as follows:\\
 
-Let's do the checklist: \\
+\begin{itemize}
+	\item Checkout \texttt{master} branch
+	\item Create \texttt{feature} branch
+	\item Implement feature, commit as atomic as possible
+	\item Local builds
+	\item Bitrise trigger for push: \texttt{debug} build
+	\item If feature fulfills internal \textit{Definition of Done}: pull request
+	\item After pull request approval: merge to \texttt{master}
+	\item Bitrise trigger for \texttt{master}: release \& preview build
+	\item If everything successful: upload to \texttt{internal} or \texttt{alpha} track of Google Play
+	\item QA is testing last master build
+	\item After QA \& customer approval: promotion to \texttt{release} track in Google Play\\
+\end{itemize}
+
+As we can see, this workflow already covers most of the CI/CD steps, but misses some crucial points. In order to analyze how this can be improved to a fully implemented CI/CD pipeline, we will use the previously introduced adopted checklist of Fowler:\\
 
 \begin{enumerate}
 	
 	\item \textbf{Maintain a Single Source Repository}
 	\begin{todolist}
-		\item[\done] Common practise in the company \\
+		\item[\done] \texttt{Git} is common practice at the company \\
 	\end{todolist}
 
 	\item \textbf{Make Your Build Self-Testing}
 	\begin{todolist}
-		\item[\wontfix] No automated testing
-		\item[\wontfix] No testing culture
+		\item[\notdone] No automated testing
+		\item[\notdone] No testing culture
 		\item Bitrise would support it \\
 	\end{todolist}
 
 	\item \textbf{Everyone Commits Every Day}
 	\begin{todolist}
-		\item[\done] Common practise in the company \\
+		\item[\done] Common practice at the company \\
 	\end{todolist}
 
 	\item \textbf{Every Commit Should Build the Mainline on an Integration Machine}
 	\begin{todolist}
-		\item[\done] Covered by Bitrise \\
+		\item[\done] Yes by Bitrise push triggers\\
 	\end{todolist}
 
 	\item \textbf{Keep the Build Fast}
 	\begin{todolist}
-		\item[\done] Inherited due to the Gradle build system for Android \\
+		\item[\done] Inherited due to the \texttt{Gradle} build system for Android \\
 	\end{todolist}
 
 	\item \textbf{Test in an Emulated Environment}
 	\begin{todolist}
-		\item[\wontfix] No automated testing
-		\item[\wontfix] production environment is hard to define  \\
+		\item[\notdone] No automated testing
+		\item Bitrise would support it (all of UI, integration and unit testing) \\
 	\end{todolist}
 
 	\item \textbf{Make it Easy for Anyone to Get the Latest Executable}
 	\begin{todolist}
-		\item[\done] Covered by Bitrise artifacts \\
+		\item[\done] Yes, by Bitrise build artifacts \\
 	\end{todolist}
 
 	\item \textbf{Everyone can see what's happening}
 	\begin{todolist}
-		\item[\done] Covered by Bitrise \\
+		\item[\done] Covered by Bitrise - everyone has access to the current build states of the projects \\
 	\end{todolist}
 
 	\item \textbf{Automate Deployment}
 	\begin{todolist}
-		\item newly introduced practise to deploy to Google Play Alpha/Beta channel, but not in every project yet \\
+		\item Yes, automated deployement to Google Play \texttt{internal} or \texttt{alpha} track, manual deployement to \texttt{release} \\
 	\end{todolist}
 
 \end{enumerate}
@@ -60,5 +75,6 @@ Let's do the checklist: \\
 \subsection{Missing steps}
 We don't test :/
 
-\subsection{Change impact}
+\subsection{Updated CI/CD pipeline}
+Bitrise config:~\ref{bitrise_config}
 Hui, nobody knows!
