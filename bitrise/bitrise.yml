@@ -1,0 +1,260 @@
+---
+format_version: '4'
+default_step_lib_source: 
+    https://github.com/bitrise-io/
+    bitrise-steplib.git
+project_type: android
+workflows:
+  release:
+    steps:
+    - gradle-runner@1.8.3:
+        inputs:
+        - gradle_file: "$GRADLE_BUILD_FILE_PATH"
+        - gradle_task: assembleDebug 
+        assemblePreview 
+        assembleRelease
+        - gradlew_path: "$GRADLEW_PATH"
+        is_always_run: true
+        title: assemble all
+    - gradle-runner@1.8.3:
+        inputs:
+        - gradle_file: "$GRADLE_BUILD_FILE_PATH"
+        - gradle_task: bundleLiveRelease
+        - apk_file_include_filter: "*.aab"
+        - apk_file_exclude_filter: |
+            *unaligned.apk
+            *Test*.apk
+            **/app.aab
+        - gradlew_path: "$GRADLEW_PATH"
+        is_always_run: false
+        title: bundleLiveRelease
+    before_run:
+    - androidSetup
+    after_run:
+    - aaa-teardown
+    description: Build release and 
+        preview versions of the app
+  preview:
+    steps:
+    - gradle-runner@1.8.0:
+        inputs:
+        - gradle_file: 
+            "$GRADLE_BUILD_FILE_PATH"
+        - gradle_task: 
+            assembleDebug assemblePreview
+        - gradlew_path: 
+            "$GRADLEW_PATH"
+        is_always_run: true
+    before_run:
+    - androidSetup
+    after_run:
+    - aaa-teardown
+    description: Build preview and 
+        debug versions of the app
+  debug:
+    steps:
+    - gradle-runner:
+        inputs:
+        - gradle_file: "$GRADLE_BUILD_FILE_PATH"
+        - gradle_task: assembleDebug 
+            assembleDebugAndroidTest
+        - gradlew_path: "$GRADLEW_PATH"
+        is_always_run: true
+        title: assemble debug
+    before_run:
+    - androidSetup
+    after_run:
+    - testing_unit
+    - aaa-teardown
+    description: Build debug versions of the app
+  androidSetup:
+    steps:
+    - file-downloader:
+        is_always_run: true
+        inputs:
+        - destination: 
+            "/bitrise/src/aaa-debug.keystore"
+        - source: 
+            "$BITRISEIO_AAA_DEBUG_KEYSTORE_URL"
+    - file-downloader:
+        is_always_run: true
+        inputs:
+        - destination: 
+            "/bitrise/src/release.keystore"
+        - source: 
+            "$BITRISEIO_ANDROID_KEYSTORE_URL"
+    - script:
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -ex
+
+
+            envman add --key ORG_GRADLE_PROJECT_keyStore --value "/bitrise/src/aaa-debug.keystore"
+
+            echo "Adding build info for alias ${BITRISEIO_ANDROID_KEYSTORE_ALIAS}"
+            envman add --key ORG_GRADLE_PROJECT_releaseKeyStore_file --value "/bitrise/src/release.keystore"
+            envman add --key ORG_GRADLE_PROJECT_releaseKeyStore_password --value "${BITRISEIO_ANDROID_KEYSTORE_PASSWORD}"
+            envman add --key ORG_GRADLE_PROJECT_releaseKeyStore_alias --value "${BITRISEIO_ANDROID_KEYSTORE_ALIAS}"
+            envman add --key ORG_GRADLE_PROJECT_releaseKeyStore_keyPassword --value "${BITRISEIO_ANDROID_KEYSTORE_PRIVATE_KEY_PASSWORD}"
+    before_run:
+    - aaa-kickstart
+    description: Setup android build. 
+        Downloads the debug key.
+  aaa-kickstart:
+    steps:
+    - remote-script-runner@2.0.1:
+        inputs:
+        - script_url: 
+            https://public.allaboutapps.at/bitrise/kickstart.sh
+    - activate-ssh-key@4.0.3:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone: {}
+    - script@1.1.5:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # debug log
+            set -x
+
+
+            if [[ -z "${BITRISE_PULL_REQUEST}" ]]; then
+               curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${BITRISE_GIT_COMMIT} -d "{ \"state\": \"INPROGRESS\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
+            else
+               echo "Update PR by pushing to latest commit ${GIT_CLONE_COMMIT_HASH} (normal git hash ${BITRISE_GIT_COMMIT})"
+               curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${GIT_CLONE_COMMIT_HASH} -d "{ \"state\": \"INPROGRESS\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"pr-build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
+            fi
+    - cache-pull: {}
+    - install-missing-android-tools: {}
+  aaa-teardown:
+    steps:
+    - deploy-to-bitrise-io:
+        is_always_run: false
+        inputs:
+        - notify_email_list: ''
+        - notify_user_groups: none
+    - cache-push: {}
+    - script@1.1.5:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # debug log
+            set -x
+
+
+            if [[ -z "${BITRISE_PULL_REQUEST}" ]]; then
+               if [ "${BITRISE_BUILD_STATUS}" = "1" ]; then
+                  curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${BITRISE_GIT_COMMIT} -d "{ \"state\": \"FAILED\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
+               else
+                  curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${BITRISE_GIT_COMMIT} -d "{ \"state\": \"SUCCESSFUL\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
+               fi
+            else
+               echo "Update PR by pushing to latest commit ${GIT_CLONE_COMMIT_HASH} (normal git hash ${BITRISE_GIT_COMMIT})"
+               if [ "${BITRISE_BUILD_STATUS}" = "1" ]; then
+                  curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${GIT_CLONE_COMMIT_HASH} -d "{ \"state\": \"FAILED\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"pr-build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
+               else
+                  curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${GIT_CLONE_COMMIT_HASH} -d "{ \"state\": \"SUCCESSFUL\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"pr-build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
+               fi
+            fi
+    - remote-script-runner@2.0.1:
+        title: aaa teardown
+        inputs:
+        - script_url: https://public.allaboutapps.at/bitrise/teardown.sh
+        is_always_run: true
+  testing_unit:
+    steps:
+    - android-lint@0.9.6:
+        is_always_run: true
+        inputs:
+        - module: app
+        - variant: DevelopmentHasToBeDebug
+        title: Android Lint Main
+    - android-lint@0.9.6:
+        title: Android Lint Features
+        inputs:
+        - variant: Debug
+        is_always_run: true
+    - android-detekt@0.0.2:
+        is_always_run: true
+    - gradle-runner:
+        inputs:
+        - gradle_file: "$GRADLE_BUILD_FILE_PATH"
+        - gradle_task: assembleDebug assembleDebugAndroidTest
+        - gradlew_path: "$GRADLEW_PATH"
+        is_always_run: true
+        title: assembleDebugAndroidTest
+    - android-unit-test@0.11.1:
+        inputs:
+        - variant: DevelopmentHasToBeDebug
+        title: Android Unit Test Main
+        is_always_run: true
+    - android-unit-test@0.11.1:
+        title: Android Unit Test Features
+        inputs:
+        - variant: Debug
+        is_always_run: true
+    before_run: []
+    after_run: []
+    description: Integration testing
+  testing_integration:
+    before_run:
+    - androidSetup
+    - testing_unit
+    after_run:
+    - aaa-teardown
+    description: Integration testing
+    steps:
+    - trigger-bitrise-workflow@0.0.7:
+        inputs:
+        - api_token: "$TOKEN_TRIGGER"
+        - workflow_id: testing_firebase_ui
+    - trigger-bitrise-workflow@0.0.7:
+        inputs:
+        - workflow_id: testing_local_ui
+        - api_token: "$TOKEN_TRIGGER"
+  testing_firebase_ui:
+    steps:
+    - gradle-runner@1.9.0:
+        inputs:
+        - gradle_task: assembleDebugAndroidTest
+    - virtual-device-testing-for-android@1.0.6:
+        title: Firebase Test Lab Robo Test
+        is_always_run: true
+    before_run: []
+    after_run: []
+    description: Integration testing
+  testing_local_ui:
+    steps:
+    - gradle-runner@1.9.0:
+        inputs:
+        - gradle_task: assembleDebugAndroidTest
+    - virtual-device-testing-for-android@1.0.6:
+        inputs:
+        - inst_test_runner_class: androidx.test.runner.AndroidJUnitRunner
+        - test_type: instrumentation
+    before_run: []
+    after_run: []
+    description: Integration testing
+app:
+  envs:
+  - opts:
+      is_expand: false
+    GRADLE_BUILD_FILE_PATH: build.gradle
+  - opts:
+      is_expand: false
+    GRADLEW_PATH: "./gradlew"
+trigger_map:
+- push_branch: master
+  workflow: preview
+- push_branch: "*"
+  workflow: debug
+- push_branch: testing
+  workflow: testing_integration
+- pull_request_source_branch: "*"
+  workflow: debug
+- tag: "*"
+  workflow: release
