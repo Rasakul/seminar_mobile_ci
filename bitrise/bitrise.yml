@@ -1,8 +1,6 @@
 ---
 format_version: '4'
-default_step_lib_source: 
-    https://github.com/bitrise-io/
-    bitrise-steplib.git
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: android
 workflows:
   release:
@@ -10,9 +8,7 @@ workflows:
     - gradle-runner@1.8.3:
         inputs:
         - gradle_file: "$GRADLE_BUILD_FILE_PATH"
-        - gradle_task: assembleDebug 
-        assemblePreview 
-        assembleRelease
+        - gradle_task: assembleDebug assemblePreview assembleRelease assembleDebugAndroidTest
         - gradlew_path: "$GRADLEW_PATH"
         is_always_run: true
         title: assemble all
@@ -31,33 +27,31 @@ workflows:
     before_run:
     - androidSetup
     after_run:
+    - testing_unit
+    - integration
     - aaa-teardown
-    description: Build release and 
-        preview versions of the app
+    description: Build release and preview versions of the app
   preview:
     steps:
     - gradle-runner@1.8.0:
         inputs:
-        - gradle_file: 
-            "$GRADLE_BUILD_FILE_PATH"
-        - gradle_task: 
-            assembleDebug assemblePreview
-        - gradlew_path: 
-            "$GRADLEW_PATH"
+        - gradle_file: "$GRADLE_BUILD_FILE_PATH"
+        - gradle_task: assembleDebug assemblePreview assembleDebugAndroidTest
+        - gradlew_path: "$GRADLEW_PATH"
         is_always_run: true
+        title: assemble debug & release
     before_run:
     - androidSetup
     after_run:
+    - testing_unit
     - aaa-teardown
-    description: Build preview and 
-        debug versions of the app
+    description: Buildpreview and debug versions of the app
   debug:
     steps:
     - gradle-runner:
         inputs:
         - gradle_file: "$GRADLE_BUILD_FILE_PATH"
-        - gradle_task: assembleDebug 
-            assembleDebugAndroidTest
+        - gradle_task: assembleDebug assembleDebugAndroidTest
         - gradlew_path: "$GRADLEW_PATH"
         is_always_run: true
         title: assemble debug
@@ -72,17 +66,13 @@ workflows:
     - file-downloader:
         is_always_run: true
         inputs:
-        - destination: 
-            "/bitrise/src/aaa-debug.keystore"
-        - source: 
-            "$BITRISEIO_AAA_DEBUG_KEYSTORE_URL"
+        - destination: "/bitrise/src/aaa-debug.keystore"
+        - source: "$BITRISEIO_AAA_DEBUG_KEYSTORE_URL"
     - file-downloader:
         is_always_run: true
         inputs:
-        - destination: 
-            "/bitrise/src/release.keystore"
-        - source: 
-            "$BITRISEIO_ANDROID_KEYSTORE_URL"
+        - destination: "/bitrise/src/release.keystore"
+        - source: "$BITRISEIO_ANDROID_KEYSTORE_URL"
     - script:
         inputs:
         - content: |
@@ -99,14 +89,12 @@ workflows:
             envman add --key ORG_GRADLE_PROJECT_releaseKeyStore_keyPassword --value "${BITRISEIO_ANDROID_KEYSTORE_PRIVATE_KEY_PASSWORD}"
     before_run:
     - aaa-kickstart
-    description: Setup android build. 
-        Downloads the debug key.
+    description: Setup android build. Downloads the debug key.
   aaa-kickstart:
     steps:
     - remote-script-runner@2.0.1:
         inputs:
-        - script_url: 
-            https://public.allaboutapps.at/bitrise/kickstart.sh
+        - script_url: https://public.allaboutapps.at/bitrise/kickstart.sh
     - activate-ssh-key@4.0.3:
         run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
     - git-clone: {}
@@ -167,6 +155,69 @@ workflows:
         is_always_run: true
   testing_unit:
     steps:
+    - android-unit-test@0.11.1:
+        inputs:
+        - variant: DevelopmentHasToBeDebug
+        title: Android Unit Test Main
+        is_always_run: true
+    - android-unit-test@0.11.1:
+        title: Android Unit Test Features
+        inputs:
+        - variant: Debug
+        is_always_run: true
+    before_run:
+    - lint
+    after_run: []
+    description: Unit tests - require assembeDebug and assembleDebugAndroid test!
+  testing_firebase_robo:
+    steps:
+    - gradle-runner@1.9.0:
+        inputs:
+        - gradle_task: ":app:assembleDebug :app:assembleAndroidTest"
+        title: Assemble App debug & test
+    - virtual-device-testing-for-android@1.0.6:
+        title: Firebase Test Lab Robo Test
+        is_always_run: true
+        inputs:
+        - test_devices: |-
+            NexusLowRes,23,en,portrait
+            Pixel2,28,en,portrait
+            Nexus9,25,en,portrait
+    before_run:
+    - androidSetup
+    after_run:
+    - aaa-teardown
+    description: Integration testing
+  testing_firebase_ui:
+    steps:
+    - gradle-runner@1.9.0:
+        inputs:
+        - gradle_task: ":app:assembleDebug :app:assembleAndroidTest"
+        title: Assemble App debug & test
+    - virtual-device-testing-for-android@1.0.6:
+        inputs:
+        - inst_test_runner_class: androidx.test.runner.AndroidJUnitRunner
+        - test_type: instrumentation
+    before_run:
+    - androidSetup
+    after_run:
+    - aaa-teardown
+    description: Integration testing
+  integration:
+    before_run: []
+    after_run: []
+    description: Integration testing for daily builds (starts 2 concurrent threads!
+      - Robo & UI Firebase Testing)
+    steps:
+    - build-router-start@0.11.3:
+        inputs:
+        - workflows: |-
+            testing_firebase_ui
+            testing_local_ui
+        - wait_for_builds: 'true'
+        - access_token: "$TOKEN_TRIGGER"
+  lint:
+    steps:
     - android-lint@0.9.6:
         is_always_run: true
         inputs:
@@ -180,65 +231,9 @@ workflows:
         is_always_run: true
     - android-detekt@0.0.2:
         is_always_run: true
-    - gradle-runner:
-        inputs:
-        - gradle_file: "$GRADLE_BUILD_FILE_PATH"
-        - gradle_task: assembleDebug assembleDebugAndroidTest
-        - gradlew_path: "$GRADLEW_PATH"
-        is_always_run: true
-        title: assembleDebugAndroidTest
-    - android-unit-test@0.11.1:
-        inputs:
-        - variant: DevelopmentHasToBeDebug
-        title: Android Unit Test Main
-        is_always_run: true
-    - android-unit-test@0.11.1:
-        title: Android Unit Test Features
-        inputs:
-        - variant: Debug
-        is_always_run: true
     before_run: []
     after_run: []
-    description: Integration testing
-  testing_integration:
-    before_run:
-    - androidSetup
-    - testing_unit
-    after_run:
-    - aaa-teardown
-    description: Integration testing
-    steps:
-    - trigger-bitrise-workflow@0.0.7:
-        inputs:
-        - api_token: "$TOKEN_TRIGGER"
-        - workflow_id: testing_firebase_ui
-    - trigger-bitrise-workflow@0.0.7:
-        inputs:
-        - workflow_id: testing_local_ui
-        - api_token: "$TOKEN_TRIGGER"
-  testing_firebase_ui:
-    steps:
-    - gradle-runner@1.9.0:
-        inputs:
-        - gradle_task: assembleDebugAndroidTest
-    - virtual-device-testing-for-android@1.0.6:
-        title: Firebase Test Lab Robo Test
-        is_always_run: true
-    before_run: []
-    after_run: []
-    description: Integration testing
-  testing_local_ui:
-    steps:
-    - gradle-runner@1.9.0:
-        inputs:
-        - gradle_task: assembleDebugAndroidTest
-    - virtual-device-testing-for-android@1.0.6:
-        inputs:
-        - inst_test_runner_class: androidx.test.runner.AndroidJUnitRunner
-        - test_type: instrumentation
-    before_run: []
-    after_run: []
-    description: Integration testing
+    description: ''
 app:
   envs:
   - opts:
@@ -252,8 +247,9 @@ trigger_map:
   workflow: preview
 - push_branch: "*"
   workflow: debug
-- push_branch: testing
-  workflow: testing_integration
+- pull_request_source_branch: "*"
+  pull_request_target_branch: master
+  workflow: preview
 - pull_request_source_branch: "*"
   workflow: debug
 - tag: "*"
