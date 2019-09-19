@@ -98,22 +98,6 @@ workflows:
     - activate-ssh-key@4.0.3:
         run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
     - git-clone: {}
-    - script@1.1.5:
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            # fail if any commands fails
-            set -e
-            # debug log
-            set -x
-
-
-            if [[ -z "${BITRISE_PULL_REQUEST}" ]]; then
-               curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${BITRISE_GIT_COMMIT} -d "{ \"state\": \"INPROGRESS\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
-            else
-               echo "Update PR by pushing to latest commit ${GIT_CLONE_COMMIT_HASH} (normal git hash ${BITRISE_GIT_COMMIT})"
-               curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${GIT_CLONE_COMMIT_HASH} -d "{ \"state\": \"INPROGRESS\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"pr-build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
-            fi
     - cache-pull: {}
     - install-missing-android-tools: {}
   aaa-teardown:
@@ -124,30 +108,6 @@ workflows:
         - notify_email_list: ''
         - notify_user_groups: none
     - cache-push: {}
-    - script@1.1.5:
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            # fail if any commands fails
-            set -e
-            # debug log
-            set -x
-
-
-            if [[ -z "${BITRISE_PULL_REQUEST}" ]]; then
-               if [ "${BITRISE_BUILD_STATUS}" = "1" ]; then
-                  curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${BITRISE_GIT_COMMIT} -d "{ \"state\": \"FAILED\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
-               else
-                  curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${BITRISE_GIT_COMMIT} -d "{ \"state\": \"SUCCESSFUL\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
-               fi
-            else
-               echo "Update PR by pushing to latest commit ${GIT_CLONE_COMMIT_HASH} (normal git hash ${BITRISE_GIT_COMMIT})"
-               if [ "${BITRISE_BUILD_STATUS}" = "1" ]; then
-                  curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${GIT_CLONE_COMMIT_HASH} -d "{ \"state\": \"FAILED\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"pr-build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
-               else
-                  curl -u integration:OTEzODU1Njg1MjkzOmDAVxascCQ65aBV3OdB/nIRP+Qf -H "Content-Type: application/json" -X POST https://git.allaboutapps.at/rest/build-status/1.0/commits/${GIT_CLONE_COMMIT_HASH} -d "{ \"state\": \"SUCCESSFUL\", \"key\": \"${BITRISE_BUILD_SLUG}\", \"name\": \"pr-build #${BITRISE_BUILD_NUMBER}\", \"url\": \"${BITRISE_BUILD_URL}\", \"description\": \"${BITRISE_GIT_MESSAGE}\" }"
-               fi
-            fi
     - remote-script-runner@2.0.1:
         title: aaa teardown
         inputs:
