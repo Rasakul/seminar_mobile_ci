@@ -1,5 +1,5 @@
-\section{Mobile CI/CD example: AllAboutApps pipeline}
-After looking into what options there are to define a CI/CD pipeline for mobile applications, this section will now evaluate this with an existing pipeline at AllAboutApps, how a concrete implementation looks like and how it can be improved to fully apply as CI/CD pipeline.
+\section{Case study: A mobile CI/CD pipeline}
+After looking into what options there are to define a CI/CD pipeline for mobile applications, this section will now evaluate this with a case study at a mobile developer company, how a concrete implementation looks like and how it can be improved to fully apply as CI/CD pipeline.
 
 \subsection{Current state}
 The current setup is based on Bitrise and an automated Google Play Store deployment. The current workflow/pipeline looks as follows:\\
@@ -41,7 +41,7 @@ As we can see, this workflow already covers most of the CI/CD steps, but misses 
 
 	\item \textbf{Every Commit Should Build the Mainline on an Integration Machine}
 	\begin{todolist}
-		\item[\done] Yes by Bitrise push triggers\\
+		\item[\done] Bitrise push triggers\\
 	\end{todolist}
 
 	\item \textbf{Keep the Build Fast}
@@ -57,7 +57,7 @@ As we can see, this workflow already covers most of the CI/CD steps, but misses 
 
 	\item \textbf{Make it Easy for Anyone to Get the Latest Executable}
 	\begin{todolist}
-		\item[\done] Yes, by Bitrise build artifacts \\
+		\item[\done] Bitrise build artifacts \\
 	\end{todolist}
 
 	\item \textbf{Everyone can see what's happening}
@@ -135,7 +135,7 @@ In order to fix this, the company developed a prototype pipeline for an existing
 	\end{tabular}
 \end{table}
 
-From the conclusion of these statements, there were these workflows defined:
+From the conclusion of these statements, there were the following workflows defined:
 
 \begin{enumerate}
 	\item \textbf{\texttt{debug}}\\

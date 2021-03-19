@@ -22,7 +22,7 @@ Coming now from the "classical" CI/CD approach, it is not possible to instantly 
 \end{itemize}
 
 \subsection{Adopted CI/CD model}
-As consequence to the mentioned points, we will adopt the practise checklist of Fowler by completely removing 2) (inherited to the build tools) and changing 7) to "Test in a Emulated Environment".
+As consequence to the mentioned points, we will adopt the practice checklist of Fowler by completely removing 2) (inherited to the build tools) and changing 7) to "Test in a Emulated Environment".
 
 \subsection{Googles CI/CD tools}
 
@@ -33,15 +33,15 @@ Google provides many frameworks and guidelines which can be pretty overwhelming 
 Bundled within the Android SDK comes the Android Emulator\footnote{\url{https://developer.android.com/studio/run/emulator}}, which allows the emulation of a virtual device on the local machine. It supports various images, called Android Virtual Devices (AVD), with different configuration options. Once launched it is considered as a real device by \texttt{adb} and can therefore used as deployment target. The tool further provides the option to launch without an UI and to be used for testing on a server.
 
 \subsubsection{Firebase Test Lab}
-With Firebase Test Lab\footnote{\url{https://firebase.google.com/docs/test-lab/android/overview}} Google offers a cloud-based device farm with virtual and real devices. It supports two different testing methods: Instrumentation (see section~\ref{sec:test_types}) and Robo (basic test type that simulates real user interactions) Tests. Test results are provided with additional logs, videos and screenshots.
+With Firebase Test Lab\footnote{\url{https://firebase.google.com/docs/test-lab}} Google offers a cloud-based device farm with virtual and real devices. It supports two different testing methods: Instrumentation (see section~\ref{sec:test_types}) and Robo (basic test type that simulates real user interactions) Tests. Test results are provided with additional logs, videos and screenshots.
 Firebase Test Lab allows 10 tests per day for virtual devices and 5 for physical devices in it's free version ("Spark Plan") - but some CI/CD cloud services like Bitrise included the service within their contingents.
 
 \subsubsection{Google Play Deploy}
-Google offers via the Play Store console a REST API to deploy compiled APKs and AABs which can be used in an CD setup. The API is secured via the according Service account. Additionally to the (not prefered way) direct release track it is possible to deploy to the \texttt{alpha}, \texttt{beta} or \texttt{internal} tracks\footnote{\url{https://developers.google.com/android-publisher/tracks}}.
+Google offers via the Play Store console a REST API to deploy compiled APKs and AABs which can be used in an CD setup. The API is secured via the according Service account. Additionally to the (not preferred way) direct release track it is possible to deploy to the \texttt{alpha}, \texttt{beta} or \texttt{internal} tracks\footnote{\url{https://developers.google.com/android-publisher/tracks}}.
 
 \subsubsection{Available CI/CD Server}
 
-In order to properly utilize a mobile CI/CD pipeline there are many estabilshed server provider around - since it would exceed the scope of this paper to make a full comparison of these service providers, we limit it to a selection of the most commons:
+In order to properly utilize a mobile CI/CD pipeline there are many established server provider around - since it would exceed the scope of this paper to make a full comparison of these service providers, we limit it to a selection of the most commons:
 
 \begin{itemize}
 	\item Bitrise\footnote{\url{https://www.bitrise.io/}}
@@ -54,9 +54,9 @@ In order to properly utilize a mobile CI/CD pipeline there are many estabilshed 
 \end{itemize}
 
 \subsection{Android testing}
-One of the most crucial steps within a CI/CD pipeline is the testing part. Again, there a many tools around for testing different levels of abstractions and granularity - this paper will foremost focus on the recommended toolchain by the Android project.~\cite{doc:fundamental_testing}
+One of the most crucial steps within a CI/CD pipeline is the testing part. Again, there a many tools around for testing different levels of abstractions and granularity - this paper will foremost focus on the recommended tool chain by the Android project.~\cite{doc:fundamental_testing}
 
-Similar to existing best practices in the "classical" software world, there is a test-driven-development approach, but adopted for a mobile approach. As can be seen in figute~\ref{fig_google_testing} there are two cycles: unit and UI. Since UI testing usually consumes far more time than unit testing, these two are seperated from each other.
+Similar to existing best practices in the "classical" software world, there is a test-driven-development approach, but adopted for a mobile approach. As can be seen in figure~\ref{fig_google_testing} there are two cycles: unit and UI. Since UI testing usually consumes far more time than unit testing, these two are separated from each other.
 
 \begin{figure}[h]
 	\centering
@@ -78,13 +78,13 @@ Google also defines three types of test categories: (see figure~\ref{fig_google_
 
 \begin{itemize}
 	\item \textbf{Unit tests - Small tests} \\ 
-	These kind of tests validate the behavior of a feature on an atomic level and are highly focues. Around 70\% of the test base should consist of small test, typical frameworks are JUnit, Mockito and PowerMock.
+	These kind of tests validate the behavior of a feature on an atomic level and are highly focus. Around 70\% of the test base should consist of small test, typical frameworks are JUnit, Mockito and PowerMock.
 	
 	\item \textbf{Integration tests - Medium tests} \\ 
-	The next level of testing are the medium/integration tests which are testing the integration of either different level of the the stack within a module or of different modules. The recommendation is to have around 20\% of tests for integration, the toolchain provides Robolectric for this.
+	The next level of testing are the medium/integration tests which are testing the integration of either different level of the the stack within a module or of different modules. The recommendation is to have around 20\% of tests for integration, the tool chain provides Robolectric for this.
 	
 	\item \textbf{UI tests - Large tests} \\ 
-	On top of the testing setup are the large tests, the UI tests. They are used to test end-to-end flows including the interaction of the user with the app through multiple stack level and modules. UI tests are usually very long running flows which have a high ressource impact. It is recommended to have 10\% UI Test, Google provides Espresso and UI Automator on the tool side.
+	On top of the testing setup are the large tests, the UI tests. They are used to test end-to-end flows including the interaction of the user with the app through multiple stack level and modules. UI tests are usually very long running flows which have a high resource impact. It is recommended to have 10\% UI Test, Google provides Espresso and UI Automator on the tool side.
 \end{itemize}
 
 For a more detailed overview of the different test size see~\ref{fig_google_test_sizes}.
@@ -126,15 +126,15 @@ The UI Automator\footnote{\url{https://developer.android.com/training/testing/ui
 \subsubsection{Android Jetpack Test}
 
 At the I/O18 it the new Android Jetpack component "Android Test"\footnote{\url{https://developer.android.com/training/testing/}} was announced, which aims at unifying the different tools and framework together in one center API within the \textit{AndroidX} package.
-At the time of writting this paper, the following tools are fully integrated: Espresso, UI Automator and AndroidJUnitRunner. Robolectric got a major update (v4) for the integration with AndroidX, but is no finished yet.
+At the time of writing this paper, the following tools are fully integrated: Espresso, UI Automator, App Crawler and AndroidJUnitRunner. Robolectric got a major update (v4) for the integration with AndroidX, but is no finished yet.
 
 \begin{mdframed}[style=InfoBox,align=center]
-	\textbf{Note:} Google recently (I/O18) also announced "Project Nitrogen" which intents to remove any restrictions of tests to runtime environment - but there are no further information available at the time of writing this paper.
+	\textbf{Note:} Google announced "Project Nitrogen" at I/O18 which intents to remove any restrictions of tests to runtime environment - the project faces major delays at the time of writing this paper (March 2021) but is still scheduled for release soon.
 \end{mdframed}
 
 \subsubsection{Outside of the Google ecosystem}
 
-Of course there are many more testing frameworks and tools out there which are not in a direct relation to Google and are not in the standard toolchain. Some well-known examples are:
+Of course there are many more testing frameworks and tools out there which are not in a direct relation to Google and are not in the standard tool chain. Some well-known examples are:
 
 \begin{itemize}
 	\item Appium\footnote{\url{http://appium.io/}}
